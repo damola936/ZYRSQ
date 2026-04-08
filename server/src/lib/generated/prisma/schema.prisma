@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  MUSICIAN
+  PRODUCER
+  LISTENER
+}
+
+enum NotificationType {
+  FOLLOW
+  COMMENT
+  REVIEW
+  MESSAGE
+  COLLABORATION
+}
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  username    String   @unique
+  displayName String
+  role        UserRole
+  bio         String?
+  avatarUrl   String?
+  bannerUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Music details
+  genres String[]
+  skills String[] // e.g. ["mixing", "mastering"] for producers, ["vocals", "guitar"] for musicians
+
+  // Relations
+  releases Release[]
+  reviews  Review[]
+  comments Comment[]
+
+  followers Follow[] @relation("Following")
+  following Follow[] @relation("Follower")
+
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+
+  collaborations Collaboration[] @relation("CollaborationMusician")
+  producedWorks  Collaboration[] @relation("CollaborationProducer")
+
+  notifications Notification[]
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  follower    User     @relation("Follower", fields: [followerId], references: [id])
+  followerId  String
+  following   User     @relation("Following", fields: [followingId], references: [id])
+  followingId String
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId]) // prevents duplicate follows
+}
+
+model Release {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  coverUrl    String?
+  audioUrl    String
+  genre       String
+  tags        String[]
+  plays       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  artist   User   @relation(fields: [artistId], references: [id])
+  artistId String
+
+  reviews        Review[]
+  comments       Comment[]
+  collaborations Collaboration[]
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  rating    Int // 1-5
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reviewer   User   @relation(fields: [reviewerId], references: [id])
+  reviewerId String
+
+  release   Release @relation(fields: [releaseId], references: [id])
+  releaseId String
+
+  @@unique([reviewerId, releaseId]) // one review per user per release
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author   User   @relation(fields: [authorId], references: [id])
+  authorId String
+
+  release   Release @relation(fields: [releaseId], references: [id])
+  releaseId String
+
+  // nested replies
+  parentId String?
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentReplies")
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  content   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  sender   User   @relation("SentMessages", fields: [senderId], references: [id])
+  senderId String
+
+  receiver   User   @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  receiverId String
+}
+
+model Collaboration {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  status      String   @default("pending") // pending, active, completed
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  musician   User   @relation("CollaborationMusician", fields: [musicianId], references: [id])
+  musicianId String
+
+  producer   User   @relation("CollaborationProducer", fields: [producerId], references: [id])
+  producerId String
+
+  release   Release? @relation(fields: [releaseId], references: [id])
+  releaseId String?
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  type      NotificationType
+  message   String
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+}
