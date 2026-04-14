@@ -1,14 +1,14 @@
 "use server"
 
 import { redirect, unstable_rethrow } from "next/navigation"
-import { createClient } from "@/utils/supabase/server";
-import { uploadImagesToBucket, uploadImageToBucket, deleteImageFromBucket } from "@/utils/supabase-image-upload-delete";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { validateWithZodSchema, accountSchema } from "@/lib/validations";
-import { UserRole, PlanType } from "@/lib/generated/prisma";
+import { accountSchema, validateWithZodSchema } from "@/lib/validations";
+import { PlanType, UserRole } from "@/lib/generated/prisma";
 import bcrypt from "bcryptjs";
+import { postSchema } from "@/lib/validations";
+import { UserProfileOptions } from "./types";
 
 const renderError = (error: unknown): { message: string, error: boolean } => {
     console.log(error);
@@ -22,8 +22,59 @@ export const isUserLoggedIn = async () => {
     const cookieStore = await cookies();
     const userId = cookieStore.get("userId")?.value;
     if (!userId) return null;
+
+    // Optimized: Only fetch essential user data by default
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            id: true,
+            email: true,
+            username: true,
+            displayName: true,
+            role: true,
+            avatarUrl: true,
+            plan: true,
+            createdAt: true,
+        }
+    })
+    return user
+}
+
+export const getUserProfile = async (options: UserProfileOptions = {}) => {
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("userId")?.value;
+    if (!userId) return null;
+
+    const includeObject: any = {};
+    if (options.posts) includeObject.posts = { take: 10, orderBy: { createdAt: 'desc' } };
+    if (options.comments) includeObject.comments = true;
+    if (options.releases) includeObject.releases = {
+        include: {
+            collaborations: {
+                include: {
+                    musician: true,
+                    producer: true
+                }
+            }
+        }
+    };
+    if (options.postLikes) includeObject.postLikes = true;
+    if (options.followers) includeObject.followers = true;
+    if (options.following) includeObject.following = true;
+    if (options.collaborations) includeObject.collaborations = true;
+    if (options.producedWorks) includeObject.producedWorks = true;
+    if (options.reviews) includeObject.reviews = true;
+    if (options.notifications) includeObject.notifications = { take: 5, orderBy: { createdAt: 'desc' } };
+    if (options.sentMessages) includeObject.sentMessages = { take: 10, orderBy: { createdAt: 'desc' } };
+    if (options.receivedMessages) includeObject.receivedMessages = { take: 10, orderBy: { createdAt: 'desc' } };
+    if (options.studioProjects) includeObject.studioProjects = true;
+    if (options.projectCollaborations) includeObject.projectCollaborations = true;
+    if (options.uploadedTracks) includeObject.uploadedTracks = true;
+    if (options.projectComments) includeObject.projectComments = true;
+
     const userProfile = await prisma.user.findUnique({
-        where: { id: userId }
+        where: { id: userId },
+        include: Object.keys(includeObject).length > 0 ? includeObject : undefined
     })
     return userProfile
 }
@@ -115,14 +166,68 @@ export async function signOutAction() {
     redirect("/")
 }
 
-export const fetchAllUsersByRole = async (role:UserRole) => {
-    const users = await prisma.user.findMany({
+export const fetchAllUsersByRole = async (role: UserRole) => {
+    return prisma.user.findMany({
         where: {
             role,
         },
         orderBy: {
             createdAt: "desc"
         }
-    })
-    return users;
+    });
+}
+
+export const fetchAllPosts = async () => {
+    return prisma.post.findMany({
+        orderBy: [
+            {
+                likes: {
+                    _count: "desc"
+                }
+            },
+            {
+                createdAt: "desc"
+            }
+        ],
+        include: {
+            author: true,
+            release: {
+                include: {
+                    collaborations: {
+                        include: {
+                            musician: true,
+                            producer: true
+                        }
+                    }
+                }
+            },
+            likes: true,
+            comments: true
+        }
+    });
+}
+
+export async function createPostAction(prevState: any, formData: FormData) {
+    const user = await isUserLoggedIn()
+    if (!user) {
+        return { message: "User not logged in", error: true }
+    }
+    try {
+        const rawData = Object.fromEntries(formData) as any;
+        const { title, content, releaseId } = rawData;
+        const validatedData = validateWithZodSchema(postSchema, { title, content, releaseId })
+        const post = await prisma.post.create({
+            data: {
+                title: validatedData.title,
+                content: validatedData.content,
+                releaseId: validatedData.releaseId,
+                userId: user.id
+            }
+        })
+        console.log("Post created:", post);
+        revalidatePath("/explore/posts")
+        return { message: "Post created successfully", error: false }
+    } catch (error) {
+        return renderError(error)
+    }
 }

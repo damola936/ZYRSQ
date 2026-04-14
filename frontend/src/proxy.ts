@@ -28,7 +28,7 @@ export async function proxy(request: NextRequest) {
     const isHomePage = request.nextUrl.pathname === '/'
     const isLoginPage = request.nextUrl.pathname === '/login'
     const isSignUpPage = request.nextUrl.pathname === '/signup'
-    const isExplorePage = request.nextUrl.pathname === '/explore'
+    const isExplorePage = request.nextUrl.pathname.startsWith('/explore')
 
     // If it's NOT the homepage/login/signup/explore and there is NO user, redirect to home (or login)
     if (!user && !isHomePage && !isLoginPage && !isSignUpPage && !isExplorePage) {

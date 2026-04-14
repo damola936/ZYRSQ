@@ -6,11 +6,10 @@ import { ReviewsData } from "@/components/Homepage/HomePageData";
 import ReviewsCard from "@/components/Homepage/ReviewsCard";
 import FutureFeaturesTimeline from "@/components/Homepage/FutureFeaturesTimeline";
 import PromotionalInbox from "@/components/Homepage/PromotionalInbox";
-import { isUserLoggedIn } from "@/utils/actions";
+import { getUserProfile } from "@/utils/actions";
 
 export default async function Home() {
-    const user = await isUserLoggedIn();
-    console.log("User:", user);
+    const user = await getUserProfile();
     return (
         <div className="min-h-screen w-full bg-background text-foreground selection:bg-primary/30">
             <div className="relative overflow-hidden">

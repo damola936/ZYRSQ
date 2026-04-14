@@ -175,6 +175,7 @@ exports.Prisma.CommentScalarFieldEnum = {
   updatedAt: 'updatedAt',
   authorId: 'authorId',
   releaseId: 'releaseId',
+  postId: 'postId',
   parentId: 'parentId'
 };
 
@@ -206,6 +207,71 @@ exports.Prisma.NotificationScalarFieldEnum = {
   read: 'read',
   createdAt: 'createdAt',
   userId: 'userId'
+};
+
+exports.Prisma.PostScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  content: 'content',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  userId: 'userId',
+  releaseId: 'releaseId'
+};
+
+exports.Prisma.PostLikeScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  postId: 'postId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.StudioProjectScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  coverUrl: 'coverUrl',
+  bpm: 'bpm',
+  key: 'key',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  ownerId: 'ownerId'
+};
+
+exports.Prisma.ProjectCollaboratorScalarFieldEnum = {
+  id: 'id',
+  role: 'role',
+  joinedAt: 'joinedAt',
+  userId: 'userId',
+  projectId: 'projectId'
+};
+
+exports.Prisma.TrackScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  audioUrl: 'audioUrl',
+  duration: 'duration',
+  fileSize: 'fileSize',
+  color: 'color',
+  order: 'order',
+  muted: 'muted',
+  solo: 'solo',
+  volume: 'volume',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  projectId: 'projectId',
+  uploadedById: 'uploadedById',
+  releaseId: 'releaseId'
+};
+
+exports.Prisma.ProjectCommentScalarFieldEnum = {
+  id: 'id',
+  content: 'content',
+  timestamp: 'timestamp',
+  createdAt: 'createdAt',
+  authorId: 'authorId',
+  projectId: 'projectId'
 };
 
 exports.Prisma.SortOrder = {
@@ -242,6 +308,14 @@ exports.NotificationType = exports.$Enums.NotificationType = {
   COLLABORATION: 'COLLABORATION'
 };
 
+exports.ProjectStatus = exports.$Enums.ProjectStatus = {
+  DRAFT: 'DRAFT',
+  IN_PROGRESS: 'IN_PROGRESS',
+  MIXING: 'MIXING',
+  MASTERING: 'MASTERING',
+  COMPLETED: 'COMPLETED'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
   Follow: 'Follow',
@@ -250,7 +324,13 @@ exports.Prisma.ModelName = {
   Comment: 'Comment',
   Message: 'Message',
   Collaboration: 'Collaboration',
-  Notification: 'Notification'
+  Notification: 'Notification',
+  Post: 'Post',
+  PostLike: 'PostLike',
+  StudioProject: 'StudioProject',
+  ProjectCollaborator: 'ProjectCollaborator',
+  Track: 'Track',
+  ProjectComment: 'ProjectComment'
 };
 
 /**

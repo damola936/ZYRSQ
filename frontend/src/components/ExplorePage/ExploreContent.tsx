@@ -2,15 +2,21 @@ import { User } from "@/lib/generated/prisma"
 import ExploreHeader from "./ExploreHeader"
 import SidebarStats from "./SidebarStats"
 import TrendingSong from "./TrendingSong"
-import { fetchAllUsersByRole } from "@/utils/actions";
+import { fetchAllPosts, fetchAllUsersByRole } from "@/utils/actions";
 import TopArtists from "@/components/ExplorePage/TopArtists";
 import Link from "next/link";
 import Button from "../Global/Button";
 import TopPosts from "@/components/ExplorePage/TopPosts";
+import { Suspense } from "react";
+import LoaderSpinner from "../Global/LoaderSpinner";
 
-async function ExploreContent({ user }: { user: User | null }) {
-  const topMusicians = await fetchAllUsersByRole("MUSICIAN") // for now, later get top 5 by followers or plays
-  const topProducers = await fetchAllUsersByRole("PRODUCER") // for now, later get top 5 by followers or plays
+async function ExploreContent({ user }: { user: any | null }) {
+  // Parallel fetching to reduce TTFB and overall render time
+  const [topMusicians, topProducers, posts] = await Promise.all([
+    fetchAllUsersByRole("MUSICIAN"),
+    fetchAllUsersByRole("PRODUCER"),
+    fetchAllPosts()
+  ]);
   return (
     <div className="flex flex-col gap-4 w-full">
       <ExploreHeader user={user} />
@@ -25,19 +31,25 @@ async function ExploreContent({ user }: { user: User | null }) {
                 <Button name="View All" size="sm" classname="bg-primary text-primary-foreground shadow-lg shadow-primary/20" />
               </Link>
             </div>
-            <TopArtists artists={topMusicians.slice(0, 5)} />
+            <Suspense fallback={<LoaderSpinner />}>
+              <TopArtists artists={topMusicians.slice(0, 5)} />
+            </Suspense>
             <div className="flex justify-between items-center">
               <h1 className="text-2xl font-bold tracking-tight">Top Producers</h1>
               <Link href={"/explore/producers"}>
                 <Button name="View All" size="sm" classname="bg-primary text-primary-foreground shadow-lg shadow-primary/20" />
               </Link>
             </div>
-            <TopArtists artists={topProducers.slice(0, 5)} />
+            <Suspense fallback={<LoaderSpinner />}>
+              <TopArtists artists={topProducers.slice(0, 5)} />
+            </Suspense>
           </div>
 
           <div className="col-span-1 lg:col-span-4 space-y-4">
             <SidebarStats />
-            <TopPosts/>
+            <Suspense fallback={<LoaderSpinner />}>
+              <TopPosts posts={posts} />
+            </Suspense>
             {/* Trademark/Info */}
             <div className="px-6 text-center">
               <p className="text-[10px] text-muted-foreground/40 font-medium tracking-widest uppercase">

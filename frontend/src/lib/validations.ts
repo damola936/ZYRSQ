@@ -18,3 +18,11 @@ export function validateWithZodSchema<T>(schema: ZodSchema<T>, data: unknown): T
     }
     return result.data
 }
+
+export const postSchema = z.object({
+    title: z.string().min(1, "Title is required"),
+    content: z.string().min(1, "Content is required"),
+    releaseId: z.string().optional(),
+});
+
+export type PostFormData = z.infer<typeof postSchema>;

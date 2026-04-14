@@ -65,6 +65,14 @@ model User {
   producedWorks  Collaboration[] @relation("CollaborationProducer")
 
   notifications Notification[]
+  posts         Post[]
+  postLikes     PostLike[]
+
+  //studio project
+  studioProjects        StudioProject[]       @relation("ProjectOwner")
+  projectCollaborations ProjectCollaborator[]
+  uploadedTracks        Track[]
+  projectComments       ProjectComment[]
 }
 
 model Follow {
@@ -96,6 +104,8 @@ model Release {
   reviews        Review[]
   comments       Comment[]
   collaborations Collaboration[]
+  posts          Post[]
+  tracks         Track[]
 }
 
 model Review {
@@ -123,8 +133,11 @@ model Comment {
   author   User   @relation(fields: [authorId], references: [id])
   authorId String
 
-  release   Release @relation(fields: [releaseId], references: [id])
-  releaseId String
+  release   Release? @relation(fields: [releaseId], references: [id])
+  releaseId String?
+
+  post   Post?   @relation(fields: [postId], references: [id])
+  postId String?
 
   // nested replies
   parentId String?
@@ -172,4 +185,104 @@ model Notification {
 
   user   User   @relation(fields: [userId], references: [id])
   userId String
+}
+
+model Post {
+  id        String     @id @default(uuid())
+  title     String
+  content   String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  author    User       @relation(fields: [userId], references: [id])
+  userId    String
+  release   Release?   @relation(fields: [releaseId], references: [id])
+  releaseId String?
+  likes     PostLike[]
+  comments  Comment[]
+}
+
+model PostLike {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+}
+
+enum ProjectStatus {
+  DRAFT
+  IN_PROGRESS
+  MIXING
+  MASTERING
+  COMPLETED
+}
+
+model StudioProject {
+  id          String        @id @default(uuid())
+  title       String
+  description String?
+  coverUrl    String?
+  bpm         Int?          @default(120)
+  key         String?       @default("C")
+  status      ProjectStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  owner   User   @relation("ProjectOwner", fields: [ownerId], references: [id])
+  ownerId String
+
+  collaborators ProjectCollaborator[]
+  tracks        Track[]
+  comments      ProjectComment[]
+}
+
+model ProjectCollaborator {
+  id       String   @id @default(uuid())
+  role     String   @default("collaborator") // "owner", "producer", "musician", "viewer"
+  joinedAt DateTime @default(now())
+
+  user      User          @relation(fields: [userId], references: [id])
+  userId    String
+  project   StudioProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  @@unique([userId, projectId])
+}
+
+model Track {
+  id        String   @id @default(uuid())
+  name      String
+  audioUrl  String
+  duration  Float? // seconds
+  fileSize  Int? // bytes
+  color     String   @default("#8b5cf6") // UI lane color
+  order     Int      @default(0)
+  muted     Boolean  @default(false)
+  solo      Boolean  @default(false)
+  volume    Float    @default(1.0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project   StudioProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  uploadedById String
+  release      Release? @relation(fields: [releaseId], references: [id])
+  releaseId    String?
+}
+
+model ProjectComment {
+  id        String   @id @default(uuid())
+  content   String
+  timestamp Float? // optional: timestamp in the track this comment refers to
+  createdAt DateTime @default(now())
+
+  author    User          @relation(fields: [authorId], references: [id])
+  authorId  String
+  project   StudioProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
 }
